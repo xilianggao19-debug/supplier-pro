@@ -3,283 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRM 供应商关系管理系统</title>
+    <title>SRM 供应商协同系统 Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .tab-btn.active { @apply border-blue-600 text-blue-600 border-b-2; }
-        .hidden { display: none; }
+        .sidebar-item-active { background: #4f46e5; color: white; }
+        [v-cloak] { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen">
 
-    <!-- 登录页 (保持简练) -->
+    <!-- 登录界面 -->
     <div id="loginPage" class="flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-            <div class="text-center mb-8">
-                <div class="bg-blue-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
-                    <i data-lucide="layers" class="text-white w-8 h-8"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800">供应商协作平台</h1>
-                <p class="text-gray-400 text-sm mt-1">医疗供应链协同系统</p>
-            </div>
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <h1 class="text-2xl font-bold text-center mb-6 text-indigo-600">SRM 智慧供应链</h1>
             <div class="space-y-4">
-                <input type="text" id="loginUser" placeholder="账号" class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all">
-                <input type="password" id="loginPass" placeholder="密码" class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transform active:scale-[0.98] transition-all shadow-lg shadow-blue-100">登录系统</button>
+                <input id="loginUser" type="text" placeholder="用户名 (admin/supply)" class="w-full border p-3 rounded-xl outline-none">
+                <input id="loginPass" type="password" placeholder="密码 (123)" class="w-full border p-3 rounded-xl outline-none">
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">立即登录</button>
             </div>
         </div>
     </div>
 
     <!-- 主界面 -->
-    <div id="mainPage" class="hidden">
-        <nav class="bg-white border-b sticky top-0 z-30">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div class="flex items-center gap-2 font-bold text-xl tracking-tight text-gray-800">
-                    <span class="bg-blue-600 text-white p-1 rounded">SRM</span> 系统
-                </div>
-                <div class="flex items-center gap-6">
-                    <div class="text-right">
-                        <p id="userInfo" class="text-sm font-bold text-gray-700"></p>
-                        <p id="userRole" class="text-[10px] uppercase tracking-widest text-gray-400"></p>
-                    </div>
-                    <button onclick="handleLogout()" class="text-gray-400 hover:text-red-500 transition-colors">
-                        <i data-lucide="log-out" size="20"></i>
-                    </button>
-                </div>
+    <div id="mainPage" class="hidden flex h-screen">
+        <!-- 侧边栏 -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col">
+            <div class="p-6 text-white font-bold text-xl border-b border-slate-800">Supplier Pro</div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="showSection('dashboard')" class="nav-btn sidebar-item-active w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="layout-grid"></i> 控制台
+                </button>
+                <button onclick="showSection('orders')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="shopping-cart"></i> 订单管理
+                </button>
+                <button id="navProducts" onclick="showSection('products')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="package"></i> SKU库管理
+                </button>
+            </nav>
+            <div class="p-6 border-t border-slate-800">
+                <div class="text-sm mb-2" id="userNameDisplay"></div>
+                <button onclick="logout()" class="text-red-400 flex items-center gap-2 hover:text-red-300">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> 退出系统
+                </button>
             </div>
-        </nav>
+        </aside>
 
-        <!-- 顶部二级导航 -->
-        <div class="bg-white border-b mb-6">
-            <div class="container mx-auto px-4 flex gap-8">
-                <button onclick="switchTab('dash')" id="tab-dash" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all active">工作台</button>
-                <button onclick="switchTab('orders')" id="tab-orders" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all">订单管理</button>
-                <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all profile-tab hidden">企业资质</button>
-            </div>
-        </div>
-
-        <main class="container mx-auto px-4 pb-12">
-            <!-- 仪表盘内容 -->
-            <div id="section-dash" class="space-y-6">
-                <!-- 统计卡片 -->
+        <!-- 内容区 -->
+        <main class="flex-1 overflow-y-auto p-8">
+            
+            <!-- 控制台 Section -->
+            <div id="section-dashboard" class="section space-y-8">
+                <h2 class="text-2xl font-bold">工作台概览</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <p class="text-gray-500 text-sm mb-1">累计订单总数</p>
-                        <h3 id="stat-total-count" class="text-3xl font-black text-gray-800">0</h3>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-500 text-sm">总采购额</p>
+                        <h3 class="text-3xl font-bold mt-1" id="stat-amount">￥0.00</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <p class="text-gray-500 text-sm mb-1">待处理事项</p>
-                        <h3 id="stat-pending-count" class="text-3xl font-black text-orange-500">0</h3>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-500 text-sm">待处理订单</p>
+                        <h3 class="text-3xl font-bold mt-1 text-amber-600" id="stat-pending">0</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <p id="stat-money-label" class="text-gray-500 text-sm mb-1">涉及总金额</p>
-                        <h3 id="stat-money-value" class="text-3xl font-black text-blue-600">¥0.00</h3>
-                    </div>
-                </div>
-
-                <!-- 管理员特有：供应商分布 -->
-                <div id="admin-charts" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h4 class="font-bold mb-4 text-gray-700">供应商交易金额分布</h4>
-                        <div id="supplier-list-stats" class="space-y-4">
-                            <!-- JS 填充 -->
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                        <i data-lucide="pie-chart" class="text-gray-200 w-20 h-20 mb-4"></i>
-                        <p class="text-gray-400">更多可视化图表集成中...</p>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-500 text-sm">合作供应商</p>
+                        <h3 class="text-3xl font-bold mt-1" id="stat-total">0</h3>
                     </div>
                 </div>
-
-                <!-- 供应商特有：预警 -->
-                <div id="supplier-alerts" class="hidden">
-                    <div id="alert-profile" class="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center gap-3 text-orange-700">
-                        <i data-lucide="alert-triangle"></i>
-                        <p>您的企业资质（营业执照、许可证）尚未完善，可能会影响订单结算，请尽快前往“企业资质”模块填写。</p>
-                    </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <canvas id="supplierChart" height="100"></canvas>
                 </div>
             </div>
 
-            <!-- 订单列表内容 -->
-            <div id="section-orders" class="hidden space-y-6">
+            <!-- 订单管理 Section -->
+            <div id="section-orders" class="section hidden space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800">订单列表</h2>
-                    <button id="admin-add-btn" onclick="openOrderModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100">
-                        <i data-lucide="plus" size="18"></i> 发布采购单
-                    </button>
+                    <h2 class="text-2xl font-bold">订单流水</h2>
+                    <button id="btnAddOrder" onclick="openOrderModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">发布新订单</button>
                 </div>
-                <div id="order-container" class="grid gap-4"></div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase">
+                            <tr>
+                                <th class="p-4">订单编号 / SKU</th>
+                                <th class="p-4">产品详情</th>
+                                <th class="p-4">供应商</th>
+                                <th class="p-4">金额</th>
+                                <th class="p-4">状态</th>
+                                <th class="p-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- 企业资质内容 (仅供应商) -->
-            <div id="section-profile" class="hidden max-w-2xl">
-                <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                    <h2 class="text-xl font-bold mb-6">合规性资质文件</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm text-gray-500 mb-1">营业执照统一社会信用代码</label>
-                            <input type="text" id="licenseNo" class="w-full p-3 bg-gray-50 border rounded-xl outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-500 mb-1">医疗器械生产/经营许可证号</label>
-                            <input type="text" id="permitNo" class="w-full p-3 bg-gray-50 border rounded-xl outline-none">
-                        </div>
-                        <button onclick="saveProfile()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">更新资质</button>
-                    </div>
+            <!-- SKU库管理 Section -->
+            <div id="section-products" class="section hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">SKU 档案库</h2>
+                    <button onclick="openProductModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700">新增档案</button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase">
+                            <tr>
+                                <th class="p-4">SKU 编号</th>
+                                <th class="p-4">名称</th>
+                                <th class="p-4">规格</th>
+                                <th class="p-4">标准单价</th>
+                                <th class="p-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
             </div>
+
         </main>
     </div>
 
-    <!-- [模态框部分与上版本逻辑一致，此处略，需保留原有的 orderModal 和 shipModal] -->
-    <!-- ... (此处请复制上一版本的 orderModal, shipModal 结构) ... -->
+    <!-- 下单弹窗 -->
+    <template id="orderModal">
+        <div class="text-left space-y-4">
+            <div>
+                <label class="text-xs font-bold text-slate-400">选择产品 (自动填充规格单价)</label>
+                <select id="md-sku" class="w-full border p-2 rounded-lg mt-1" onchange="autoFillProduct(this.value)">
+                    <option value="">-- 请选择 SKU --</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <input id="md-name" placeholder="产品名称" class="border p-2 rounded-lg" readonly>
+                <input id="md-spec" placeholder="规格" class="border p-2 rounded-lg" readonly>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <input id="md-qty" type="number" placeholder="采购数量" class="border p-2 rounded-lg">
+                <input id="md-price" type="number" placeholder="采购单价" class="border p-2 rounded-lg">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-slate-400">选择供应商</label>
+                <select id="md-supplier" class="w-full border p-2 rounded-lg mt-1"></select>
+            </div>
+        </div>
+    </template>
 
     <script>
         let currentUser = null;
+        let productsCache = [];
+        let chartInstance = null;
 
-        async function init() {
-            const saved = localStorage.getItem('user');
-            if (saved) {
+        // 页面初始化
+        window.onload = () => {
+            const saved = localStorage.getItem('srm_user');
+            if(saved) {
                 currentUser = JSON.parse(saved);
-                showDashboard();
+                enterSystem();
             }
             lucide.createIcons();
-        }
+        };
 
-        // 标签页切换
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            
-            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
-            document.getElementById('section-' + tab).classList.remove('hidden');
-
-            if (tab === 'dash') refreshStats();
-            if (tab === 'orders') refreshOrders();
-        }
-
+        // 登录逻辑
         async function handleLogin() {
             const username = document.getElementById('loginUser').value;
             const password = document.getElementById('loginPass').value;
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username, password })
-            });
-            if (res.ok) {
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
                 const data = await res.json();
-                currentUser = data.user;
-                localStorage.setItem('user', JSON.stringify(currentUser));
-                showDashboard();
-            } else {
-                alert('登录失败，请检查账号密码');
+                if(data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('srm_user', JSON.stringify(currentUser));
+                    enterSystem();
+                }
+            } catch(e) {
+                Swal.fire('错误', '账号或密码不正确', 'error');
             }
         }
 
-        function showDashboard() {
+        function enterSystem() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('mainPage').classList.remove('hidden');
-            document.getElementById('userInfo').innerText = currentUser.nickname;
-            document.getElementById('userRole').innerText = currentUser.role === 'admin' ? 'System Admin' : 'Supplier Partner';
+            document.getElementById('userNameDisplay').innerText = `当前用户：${currentUser.nickname}`;
             
-            if (currentUser.role === 'admin') {
-                document.getElementById('admin-add-btn').classList.remove('hidden');
-                document.getElementById('admin-charts').classList.remove('hidden');
-                document.getElementById('stat-money-label').innerText = '全平台采购总额';
-            } else {
-                document.querySelectorAll('.profile-tab').forEach(el => el.classList.remove('hidden'));
-                document.getElementById('supplier-alerts').classList.remove('hidden');
-                document.getElementById('stat-money-label').innerText = '累计结算金额';
+            // 权限显隐
+            if(currentUser.role !== 'admin') {
+                document.getElementById('navProducts').classList.add('hidden');
+                document.getElementById('btnAddOrder').classList.add('hidden');
             }
-            switchTab('dash');
+            
+            showSection('dashboard');
+            loadBaseData();
+        }
+
+        function logout() {
+            localStorage.removeItem('srm_user');
+            location.reload();
+        }
+
+        async function loadBaseData() {
+            const res = await fetch('/api/products');
+            productsCache = await res.json();
+        }
+
+        function showSection(name) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${name}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('sidebar-item-active'));
+            event?.currentTarget?.classList?.add('sidebar-item-active');
+
+            if(name === 'dashboard') loadStats();
+            if(name === 'orders') loadOrders();
+            if(name === 'products') loadProducts();
             lucide.createIcons();
         }
 
-        async function refreshStats() {
-            const url = currentUser.role === 'admin' ? '/api/stats/admin' : `/api/stats/supplier/${currentUser.id}`;
-            const res = await fetch(url);
+        // --- 统计图表 ---
+        async function loadStats() {
+            const res = await fetch('/api/stats/admin');
             const data = await res.json();
+            document.getElementById('stat-amount').innerText = `￥${(data.stats.amount || 0).toLocaleString()}`;
+            document.getElementById('stat-pending').innerText = data.stats.pending || 0;
+            document.getElementById('stat-total').innerText = data.chart.length;
 
-            document.getElementById('stat-total-count').innerText = data.stats.totalOrders || 0;
-            document.getElementById('stat-pending-count').innerText = data.stats.pendingOrders || 0;
-            document.getElementById('stat-money-value').innerText = `¥${(data.stats.totalAmount || data.stats.totalRevenue || 0).toLocaleString()}`;
+            const ctx = document.getElementById('supplierChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.chart.map(i => i.name),
+                    datasets: [{
+                        label: '各供应商采购总额',
+                        data: data.chart.map(i => i.value),
+                        backgroundColor: '#6366f1'
+                    }]
+                }
+            });
+        }
 
-            if (currentUser.role === 'admin') {
-                const list = document.getElementById('supplier-list-stats');
-                list.innerHTML = data.suppliers.map(s => `
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="font-medium text-gray-700">${s.name}</span>
-                            <span class="text-gray-500">¥${s.value.toLocaleString()} (${s.count}单)</span>
-                        </div>
-                        <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                            <div class="bg-blue-500 h-full" style="width: ${Math.min(100, (s.value/data.stats.totalAmount)*100)}%"></div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                document.getElementById('alert-profile').classList.toggle('hidden', !data.profileMissing);
+        // --- SKU 管理 ---
+        async function loadProducts() {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            const body = document.getElementById('productTableBody');
+            body.innerHTML = data.map(p => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4 font-mono font-bold">${p.sku}</td>
+                    <td class="p-4">${p.name}</td>
+                    <td class="p-4">${p.spec}</td>
+                    <td class="p-4">￥${p.unit_price}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteProduct(${p.id})" class="text-red-400 hover:text-red-600">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function openProductModal() {
+            const { value: formValues } = await Swal.fire({
+                title: '新增 SKU 档案',
+                html: `
+                    <input id="sw-sku" class="swal2-input" placeholder="SKU 编号">
+                    <input id="sw-name" class="swal2-input" placeholder="名称">
+                    <input id="sw-spec" class="swal2-input" placeholder="规格">
+                    <input id="sw-price" type="number" class="swal2-input" placeholder="单价">
+                `,
+                focusConfirm: false,
+                preConfirm: () => ({
+                    sku: document.getElementById('sw-sku').value,
+                    name: document.getElementById('sw-name').value,
+                    spec: document.getElementById('sw-spec').value,
+                    unit_price: document.getElementById('sw-price').value
+                })
+            });
+            if(formValues) {
+                await fetch('/api/products', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(formValues)
+                });
+                loadProducts();
             }
         }
 
-        async function refreshOrders() {
+        // --- 订单管理 ---
+        async function loadOrders() {
             const res = await fetch(`/api/orders?role=${currentUser.role}&userId=${currentUser.id}`);
-            const orders = await res.json();
-            const container = document.getElementById('order-container');
-            
-            if (orders.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-400">暂无订单数据</div>`;
-                return;
-            }
-
-            container.innerHTML = orders.map(o => `
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex flex-wrap justify-between items-start gap-4">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-500">${o.order_no}</span>
-                                <span class="text-xs ${o.status === '待确认' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'} px-2 py-0.5 rounded-full font-bold">
-                                    ${o.status}
-                                </span>
-                            </div>
-                            <h3 class="font-bold text-gray-800 text-lg">${o.name}</h3>
-                            <p class="text-sm text-gray-400">${o.sku} | ${o.spec} | 数量：${o.quantity}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xl font-black text-gray-800">¥${o.total_price.toFixed(2)}</p>
-                            <p class="text-xs text-gray-400 mt-1">${currentUser.role === 'admin' ? '供应商：'+o.supplier_name : '采购方：医院管理中心'}</p>
-                            ${currentUser.role === 'supplier' && o.status === '待确认' ? 
-                                `<button onclick="openShipModal(${o.id})" class="mt-3 bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-bold">发货确认</button>` : ''
-                            }
-                        </div>
-                    </div>
-                </div>
+            const data = await res.json();
+            const body = document.getElementById('orderTableBody');
+            body.innerHTML = data.map(o => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4">
+                        <div class="font-bold">#${o.order_no}</div>
+                        <div class="text-xs text-slate-400">${o.sku}</div>
+                    </td>
+                    <td class="p-4">
+                        <div>${o.name}</div>
+                        <div class="text-xs text-slate-400">${o.spec} x ${o.quantity}</div>
+                    </td>
+                    <td class="p-4">${o.supplier_name}</td>
+                    <td class="p-4 font-bold">￥${o.total_price.toLocaleString()}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold ${getStatusStyle(o.status)}">
+                            ${o.status}
+                        </span>
+                    </td>
+                    <td class="p-4 text-right">
+                        ${getActionButton(o)}
+                    </td>
+                </tr>
             `).join('');
             lucide.createIcons();
         }
 
-        // [其他辅助函数：handleLogout, saveProfile, openOrderModal 等参考之前版本逻辑]
-        function handleLogout() {
-            localStorage.removeItem('user');
-            location.reload();
-        }
-        
-        async function saveProfile() {
-            const res = await fetch('/api/profile', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    userId: currentUser.id,
-                    license_no: document.getElementById('licenseNo').value,
-                    medical_permit: document.getElementById('permitNo').value
-                })
-            });
-            if (res.ok) alert('资质更新成功！');
-            refreshStats();
+        function getStatusStyle(s) {
+            if(s === '待确认') return 'bg-amber-100 text-amber-700';
+            if(s === '已发货') return 'bg-blue-100 text-blue-700';
+            return 'bg-emerald-100 text-emerald-700';
         }
 
-        init();
+        function getActionButton(o) {
+            if(currentUser.role === 'admin' && o.status === '已发货') {
+                return `<button onclick="receiveOrder(${o.id})" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs">确认收货</button>`;
+            }
+            if(currentUser.role === 'supplier' && o.status === '待确认') {
+                return `<button onclick="confirmShipping(${o.id})" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs">去发货</button>`;
+            }
+            return '<span class="text-slate-300">-</span>';
+        }
+
+        async function openOrderModal() {
+            const suppliersRes = await fetch('/api/suppliers-list');
+            const suppliers = await suppliersRes.json();
+            
+            const { value: formValues } = await Swal.fire({
+                title: '发布采购订单',
+                html: document.getElementById('orderModal').innerHTML,
+                didOpen: () => {
+                    const skuSelect = document.getElementById('md-sku');
+                    productsCache.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.sku;
+                        opt.text = `${p.sku} - ${p.name}`;
+                        skuSelect.appendChild(opt);
+                    });
+                    const supSelect = document.getElementById('md-supplier');
+                    suppliers.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.text = s.nickname;
+                        supSelect.appendChild(opt);
+                    });
+                },
+                preConfirm: () => ({
+                    order_no: 'PO' + Date.now().toString().slice(-6),
+                    sku: document.getElementById('md-sku').value,
+                    name: document.getElementById('md-name').value,
+                    spec: document.getElementById('md-spec').value,
+                    quantity: document.getElementById('md-qty').value,
+                    unit_price: document.getElementById('md-price').value,
+                    supplier_id: document.getElementById('md-supplier').value
+                })
+            });
+
+            if(formValues) {
+                await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(formValues)
+                });
+                Swal.fire('成功', '订单已发送给供应商', 'success');
+                loadOrders();
+            }
+        }
+
+        function autoFillProduct(sku) {
+            const p = productsCache.find(x => x.sku === sku);
+            if(p) {
+                document.getElementById('md-name').value = p.name;
+                document.getElementById('md-spec').value = p.spec;
+                document.getElementById('md-price').value = p.unit_price;
+            }
+        }
+
+        async function confirmShipping(id) {
+            const { value: fileData } = await Swal.fire({
+                title: '发货确认',
+                html: `
+                    <input id="sw-express" class="swal2-input" placeholder="快递/物流公司">
+                    <input id="sw-no" class="swal2-input" placeholder="物流单号">
+                    <p class="text-xs text-slate-400 mt-4">请上传发货单和质检报告 (可选)</p>
+                    <input type="file" id="sw-file1" class="mt-2 text-xs">
+                `,
+                preConfirm: () => ({
+                    orderId: id,
+                    logistics_company: document.getElementById('sw-express').value,
+                    tracking_no: document.getElementById('sw-no').value,
+                    note: document.getElementById('sw-file1').files[0]
+                })
+            });
+
+            if(fileData) {
+                const fd = new FormData();
+                fd.append('orderId', id);
+                fd.append('logistics_company', fileData.logistics_company);
+                fd.append('tracking_no', fileData.tracking_no);
+                if(fileData.note) fd.append('note', fileData.note);
+
+                await fetch('/api/orders/confirm', { method: 'POST', body: fd });
+                Swal.fire('发货成功', '等待管理员确认收货', 'success');
+                loadOrders();
+            }
+        }
+
+        async function receiveOrder(id) {
+            await fetch('/api/orders/receive', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id})
+            });
+            Swal.fire('完成', '订单已入库', 'success');
+            loadOrders();
+        }
     </script>
 </body>
 </html>
