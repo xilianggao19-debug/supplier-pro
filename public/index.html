@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRM 供应商关系管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .tab-btn.active { @apply border-blue-600 text-blue-600 border-b-2; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- 登录页 (保持简练) -->
+    <div id="loginPage" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
+                    <i data-lucide="layers" class="text-white w-8 h-8"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">供应商协作平台</h1>
+                <p class="text-gray-400 text-sm mt-1">医疗供应链协同系统</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="loginUser" placeholder="账号" class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+                <input type="password" id="loginPass" placeholder="密码" class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transform active:scale-[0.98] transition-all shadow-lg shadow-blue-100">登录系统</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="mainPage" class="hidden">
+        <nav class="bg-white border-b sticky top-0 z-30">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-2 font-bold text-xl tracking-tight text-gray-800">
+                    <span class="bg-blue-600 text-white p-1 rounded">SRM</span> 系统
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <p id="userInfo" class="text-sm font-bold text-gray-700"></p>
+                        <p id="userRole" class="text-[10px] uppercase tracking-widest text-gray-400"></p>
+                    </div>
+                    <button onclick="handleLogout()" class="text-gray-400 hover:text-red-500 transition-colors">
+                        <i data-lucide="log-out" size="20"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 顶部二级导航 -->
+        <div class="bg-white border-b mb-6">
+            <div class="container mx-auto px-4 flex gap-8">
+                <button onclick="switchTab('dash')" id="tab-dash" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all active">工作台</button>
+                <button onclick="switchTab('orders')" id="tab-orders" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all">订单管理</button>
+                <button onclick="switchTab('profile')" id="tab-profile" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-blue-600 transition-all profile-tab hidden">企业资质</button>
+            </div>
+        </div>
+
+        <main class="container mx-auto px-4 pb-12">
+            <!-- 仪表盘内容 -->
+            <div id="section-dash" class="space-y-6">
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <p class="text-gray-500 text-sm mb-1">累计订单总数</p>
+                        <h3 id="stat-total-count" class="text-3xl font-black text-gray-800">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <p class="text-gray-500 text-sm mb-1">待处理事项</p>
+                        <h3 id="stat-pending-count" class="text-3xl font-black text-orange-500">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <p id="stat-money-label" class="text-gray-500 text-sm mb-1">涉及总金额</p>
+                        <h3 id="stat-money-value" class="text-3xl font-black text-blue-600">¥0.00</h3>
+                    </div>
+                </div>
+
+                <!-- 管理员特有：供应商分布 -->
+                <div id="admin-charts" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h4 class="font-bold mb-4 text-gray-700">供应商交易金额分布</h4>
+                        <div id="supplier-list-stats" class="space-y-4">
+                            <!-- JS 填充 -->
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                        <i data-lucide="pie-chart" class="text-gray-200 w-20 h-20 mb-4"></i>
+                        <p class="text-gray-400">更多可视化图表集成中...</p>
+                    </div>
+                </div>
+
+                <!-- 供应商特有：预警 -->
+                <div id="supplier-alerts" class="hidden">
+                    <div id="alert-profile" class="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center gap-3 text-orange-700">
+                        <i data-lucide="alert-triangle"></i>
+                        <p>您的企业资质（营业执照、许可证）尚未完善，可能会影响订单结算，请尽快前往“企业资质”模块填写。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 订单列表内容 -->
+            <div id="section-orders" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800">订单列表</h2>
+                    <button id="admin-add-btn" onclick="openOrderModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100">
+                        <i data-lucide="plus" size="18"></i> 发布采购单
+                    </button>
+                </div>
+                <div id="order-container" class="grid gap-4"></div>
+            </div>
+
+            <!-- 企业资质内容 (仅供应商) -->
+            <div id="section-profile" class="hidden max-w-2xl">
+                <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                    <h2 class="text-xl font-bold mb-6">合规性资质文件</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">营业执照统一社会信用代码</label>
+                            <input type="text" id="licenseNo" class="w-full p-3 bg-gray-50 border rounded-xl outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">医疗器械生产/经营许可证号</label>
+                            <input type="text" id="permitNo" class="w-full p-3 bg-gray-50 border rounded-xl outline-none">
+                        </div>
+                        <button onclick="saveProfile()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4">更新资质</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- [模态框部分与上版本逻辑一致，此处略，需保留原有的 orderModal 和 shipModal] -->
+    <!-- ... (此处请复制上一版本的 orderModal, shipModal 结构) ... -->
+
+    <script>
+        let currentUser = null;
+
+        async function init() {
+            const saved = localStorage.getItem('user');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                showDashboard();
+            }
+            lucide.createIcons();
+        }
+
+        // 标签页切换
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('section-' + tab).classList.remove('hidden');
+
+            if (tab === 'dash') refreshStats();
+            if (tab === 'orders') refreshOrders();
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('loginUser').value;
+            const password = document.getElementById('loginPass').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username, password })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                currentUser = data.user;
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                showDashboard();
+            } else {
+                alert('登录失败，请检查账号密码');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('mainPage').classList.remove('hidden');
+            document.getElementById('userInfo').innerText = currentUser.nickname;
+            document.getElementById('userRole').innerText = currentUser.role === 'admin' ? 'System Admin' : 'Supplier Partner';
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('admin-add-btn').classList.remove('hidden');
+                document.getElementById('admin-charts').classList.remove('hidden');
+                document.getElementById('stat-money-label').innerText = '全平台采购总额';
+            } else {
+                document.querySelectorAll('.profile-tab').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('supplier-alerts').classList.remove('hidden');
+                document.getElementById('stat-money-label').innerText = '累计结算金额';
+            }
+            switchTab('dash');
+            lucide.createIcons();
+        }
+
+        async function refreshStats() {
+            const url = currentUser.role === 'admin' ? '/api/stats/admin' : `/api/stats/supplier/${currentUser.id}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            document.getElementById('stat-total-count').innerText = data.stats.totalOrders || 0;
+            document.getElementById('stat-pending-count').innerText = data.stats.pendingOrders || 0;
+            document.getElementById('stat-money-value').innerText = `¥${(data.stats.totalAmount || data.stats.totalRevenue || 0).toLocaleString()}`;
+
+            if (currentUser.role === 'admin') {
+                const list = document.getElementById('supplier-list-stats');
+                list.innerHTML = data.suppliers.map(s => `
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="font-medium text-gray-700">${s.name}</span>
+                            <span class="text-gray-500">¥${s.value.toLocaleString()} (${s.count}单)</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-blue-500 h-full" style="width: ${Math.min(100, (s.value/data.stats.totalAmount)*100)}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('alert-profile').classList.toggle('hidden', !data.profileMissing);
+            }
+        }
+
+        async function refreshOrders() {
+            const res = await fetch(`/api/orders?role=${currentUser.role}&userId=${currentUser.id}`);
+            const orders = await res.json();
+            const container = document.getElementById('order-container');
+            
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 text-gray-400">暂无订单数据</div>`;
+                return;
+            }
+
+            container.innerHTML = orders.map(o => `
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex flex-wrap justify-between items-start gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-500">${o.order_no}</span>
+                                <span class="text-xs ${o.status === '待确认' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'} px-2 py-0.5 rounded-full font-bold">
+                                    ${o.status}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-lg">${o.name}</h3>
+                            <p class="text-sm text-gray-400">${o.sku} | ${o.spec} | 数量：${o.quantity}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-gray-800">¥${o.total_price.toFixed(2)}</p>
+                            <p class="text-xs text-gray-400 mt-1">${currentUser.role === 'admin' ? '供应商：'+o.supplier_name : '采购方：医院管理中心'}</p>
+                            ${currentUser.role === 'supplier' && o.status === '待确认' ? 
+                                `<button onclick="openShipModal(${o.id})" class="mt-3 bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-bold">发货确认</button>` : ''
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // [其他辅助函数：handleLogout, saveProfile, openOrderModal 等参考之前版本逻辑]
+        function handleLogout() {
+            localStorage.removeItem('user');
+            location.reload();
+        }
+        
+        async function saveProfile() {
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    license_no: document.getElementById('licenseNo').value,
+                    medical_permit: document.getElementById('permitNo').value
+                })
+            });
+            if (res.ok) alert('资质更新成功！');
+            refreshStats();
+        }
+
+        init();
+    </script>
+</body>
+</html>
