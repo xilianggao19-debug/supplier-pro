@@ -238,7 +238,21 @@ app.post('/api/profile', upload.fields([
         });
     });
 });
+const fs = require('fs');
+const path = require('path');
 
+// 1. 确保数据文件夹存在（非常重要！）
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// 2. 将数据库指向 data 文件夹下的文件
+const dbPath = path.join(dataDir, 'suppliers.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) console.error('数据库连接失败:', err.message);
+    else console.log('已成功连接 SQLite 数据库');
+});
 // 8. 启动服务器
 app.listen(port, '0.0.0.0', () => {
     console.log(`------------------------------------------`);
